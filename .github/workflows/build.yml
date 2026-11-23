@@ -34,13 +34,21 @@ jobs:
 
       - name: Build Debug APK
         run: |
+          PROJECT_DIR=$(find . -maxdepth 3 -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1 | xargs -r dirname)
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "Could not find settings.gradle.kts or settings.gradle in the repository."
+            ls -la
+            exit 1
+          fi
+          cd "$PROJECT_DIR"
           if [ ! -f "./gradlew" ]; then
             gradle wrapper --gradle-version 8.7
           fi
           ./gradlew assembleDebug --stacktrace
+          echo "APK_PATH=$PWD/app/build/outputs/apk/debug/app-debug.apk" >> $GITHUB_ENV
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.APK_PATH }}
