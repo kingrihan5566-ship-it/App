@@ -38,13 +38,15 @@ jobs:
           rm -rf "$WORK_DIR"
           mkdir -p "$WORK_DIR"
 
-          if [ -f "pay-listener-app.zip" ]; then
-            unzip -q "pay-listener-app.zip" -d "$WORK_DIR"
+          ZIP_FILE=$(find . -maxdepth 2 -name "*.zip" | head -n 1)
+          if [ -n "$ZIP_FILE" ]; then
+            echo "Extracting archive: $ZIP_FILE"
+            unzip -q "$ZIP_FILE" -d "$WORK_DIR"
           else
             cp -R . "$WORK_DIR"
           fi
 
-          PROJECT_DIR=$(find "$WORK_DIR" -maxdepth 4 -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1 | xargs -r dirname)
+          PROJECT_DIR=$(find "$WORK_DIR" -maxdepth 5 \( -name "settings.gradle.kts" -o -name "settings.gradle" \) | head -n 1 | xargs -r dirname)
           if [ -z "$PROJECT_DIR" ]; then
             echo "Could not find settings.gradle.kts or settings.gradle after extracting."
             find "$WORK_DIR" -maxdepth 4
