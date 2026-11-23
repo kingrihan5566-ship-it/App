@@ -34,21 +34,38 @@ jobs:
 
       - name: Build Debug APK
         run: |
-          PROJECT_DIR=$(find . -maxdepth 3 -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1 | xargs -r dirname)
+          WORK_DIR="$RUNNER_TEMP/android_src"
+          rm -rf "$WORK_DIR"
+          mkdir -p "$WORK_DIR"
+
+          if [ -f "pay-listener-app.zip" ]; then
+            unzip -q "pay-listener-app.zip" -d "$WORK_DIR"
+          else
+            cp -R . "$WORK_DIR"
+          fi
+
+          PROJECT_DIR=$(find "$WORK_DIR" -maxdepth 4 -name "settings.gradle.kts" -o -name "settings.gradle" | head -n 1 | xargs -r dirname)
           if [ -z "$PROJECT_DIR" ]; then
-            echo "Could not find settings.gradle.kts or settings.gradle in the repository."
-            ls -la
+            echo "Could not find settings.gradle.kts or settings.gradle after extracting."
+            find "$WORK_DIR" -maxdepth 4
             exit 1
           fi
+
           cd "$PROJECT_DIR"
           if [ ! -f "./gradlew" ]; then
             gradle wrapper --gradle-version 8.7
           fi
           ./gradlew assembleDebug --stacktrace
-          echo "APK_PATH=$PWD/app/build/outputs/apk/debug/app-debug.apk" >> $GITHUB_ENV
+
+          APK_FOUND=$(find "$PROJECT_DIR/app/build/outputs/apk" -name "*.apk" | head -n 1)
+          if [ -z "$APK_FOUND" ]; then
+            echo "APK file was not generated."
+            exit 1
+          fi
+          cp "$APK_FOUND" "$RUNNER_TEMP/app-debug.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: ${{ env.APK_PATH }}
+          path: ${{ runner.temp }}/app-debug.apk
